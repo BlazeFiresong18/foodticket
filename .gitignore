@@ -25,3 +25,7 @@ foodticket/local/
 # Python helper
 __pycache__/
 .venv/
+
+# app runtime artifacts
+foodticket/foodticket-app.log
+foodticket/_tools/

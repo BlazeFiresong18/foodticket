@@ -202,7 +202,7 @@ let () =
        let ip = client_ip () in
        if
          not
-           (Ft_util.rate_allow ~key:("login-ip:" ^ ip) ~limit:10
+           (Ft_util.rate_allow ~key:("login-ip:" ^ ip) ~limit:30
               ~window_s:600.
             && Ft_util.rate_allow ~key:("login-email:" ^ email) ~limit:5
                  ~window_s:600.)
