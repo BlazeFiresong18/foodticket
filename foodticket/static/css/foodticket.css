@@ -149,3 +149,20 @@ body {
     word-break: break-word;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
+
+/* ── dashboards ─────────────────────────────────────────────── */
+.data-table { margin: 16px auto; border-collapse: collapse; background: rgba(255,255,255,0.06); }
+.data-table th, .data-table td { border: 1px solid rgba(255,255,255,0.25); padding: 6px 10px; font-size: 0.92rem; }
+.data-table th { background: rgba(255,255,255,0.12); }
+.row-flagged td { background: rgba(255,80,80,0.25); }
+.status-ok { color: #7ce38b; }
+.status-bad { color: #ff7b72; font-weight: bold; }
+.warning-box { background: #7a1f1f; border: 2px solid #ff5252; color: #fff; padding: 16px; margin: 12px auto; max-width: 420px; border-radius: 8px; font-size: 1.05rem; }
+.success-box { background: #14532d; border: 2px solid #22c55e; color: #fff; padding: 16px; margin: 12px auto; max-width: 420px; border-radius: 8px; font-size: 1.05rem; }
+.info-box { background: rgba(255,255,255,0.08); padding: 12px; margin: 10px auto; max-width: 420px; border-radius: 8px; }
+.admin-wrap { padding: 24px; text-align: center; }
+.tab-btn { padding: 8px 18px; margin: 4px; font-size: 1rem; cursor: pointer; }
+.toolbar { margin: 12px 0; }
+.toolbar input, .toolbar select { padding: 6px; margin: 2px; }
+#qr-box { display: inline-block; background: #fff; padding: 14px; margin: 14px auto; border-radius: 8px; }
+#qr-box img, #qr-box canvas { display: block; }

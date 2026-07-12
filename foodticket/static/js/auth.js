@@ -23,6 +23,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }).then(function(r) { return r.json(); });
   }
 
+  function homeFor(role) {
+    if (role === "admin") return "/admin";
+    if (role === "scanner") return "/scanner";
+    return "/dashboard";
+  }
+
   // ── Register page ───────────────────────────────────────────────────
   var registerContainer = document.getElementById("register-container");
   if (registerContainer) {
@@ -31,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
       'style="padding:8px;font-size:1rem;width:260px;margin:8px 0;display:block"/>' +
       '<input id="reg-email" type="email" placeholder="you@email.com" ' +
       'style="padding:8px;font-size:1rem;width:260px;margin:8px 0;display:block"/>' +
-      '<input id="reg-password" type="password" placeholder="Password" ' +
+      '<input id="reg-password" type="password" placeholder="Password (min 8 characters)" ' +
       'style="padding:8px;font-size:1rem;width:260px;margin:8px 0;display:block"/>' +
       '<button id="reg-submit" class="login-btn">Register</button>';
 
@@ -45,8 +51,16 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(function(data) {
           if (data.status === "already_registered") {
             setStatus("Already registered, please login.");
+          } else if (data.status === "weak_password") {
+            setStatus("Password must be at least 8 characters.");
+          } else if (data.status === "invalid_email") {
+            setStatus("That email address doesn't look valid.");
+          } else if (data.status === "invalid_name") {
+            setStatus("Please enter a valid name.");
+          } else if (data.status === "rate_limited") {
+            setStatus("Too many attempts. Please wait a while and try again.");
           } else if (data.status === "success") {
-            setStatus("Registration successful, you can now login.");
+            setStatus('Registration successful! <a href="/login">Login now</a>');
           } else {
             setStatus("Something went wrong. Try again.");
           }
@@ -72,14 +86,13 @@ document.addEventListener("DOMContentLoaded", function () {
       setStatus("Checking...");
       post("/api/login", { email: email, password: password })
         .then(function(data) {
-          if (data.status === "not_found") {
-            setStatus('Email not found, please register. <a href="/register">Register</a>');
-          } else if (data.status === "wrong_password") {
-            setStatus("Incorrect password.");
+          if (data.status === "invalid_credentials") {
+            setStatus('Wrong email or password. <a href="/register">Need an account?</a>');
+          } else if (data.status === "rate_limited") {
+            setStatus("Too many attempts. Please wait a few minutes and try again.");
           } else if (data.status === "success") {
-            setStatus(
-              "Welcome back " + escapeHtml(data.name) + '! <a href="/dashboard">Go to Dashboard</a>'
-            );
+            setStatus("Welcome back " + escapeHtml(data.name) + "! Redirecting…");
+            location.href = homeFor(data.role);
           } else {
             setStatus("Something went wrong. Try again.");
           }

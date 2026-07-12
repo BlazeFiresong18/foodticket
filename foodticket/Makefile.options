@@ -8,10 +8,10 @@ PROJECT_NAME := foodticket
 # Source files for the server
 SERVER_FILES := $(wildcard *.eliomi *.eliom)
 # Source files for the client
-CLIENT_FILES := $(wildcard *.eliomi *.eliom)
+CLIENT_FILES := foodticket.eliom
 
 # OCamlfind packages for the server
-SERVER_PACKAGES := lwt_ppx js_of_ocaml-ppx_deriving_json mysql str unix letters tls-lwt letters tls-lwt
+SERVER_PACKAGES := lwt_ppx js_of_ocaml-ppx_deriving_json mysql str unix letters tls-lwt safepass yojson lwt.unix
 # OCamlfind packages for the client
 CLIENT_PACKAGES := lwt_ppx js_of_ocaml-ppx js_of_ocaml-ppx_deriving_json
 
