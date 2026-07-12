@@ -1,0 +1,29 @@
+# Local dry-run Caddyfile: HTTPS on https://localhost:8443 with a
+# self-signed certificate from Caddy's internal CA.  Same proxy and
+# header behavior as production (deploy/Caddyfile).
+#
+#   ~/.local/bin/caddy run --config deploy/Caddyfile.dev
+#
+# curl needs -k (or `caddy trust` to install the local CA).
+
+{
+	local_certs
+	# dry-run only: keep Caddy fully unprivileged
+	http_port 8081
+	https_port 8443
+	skip_install_trust
+}
+
+https://localhost:8443 {
+	reverse_proxy 127.0.0.1:8080
+
+	encode gzip
+
+	header {
+		defer
+		Set-Cookie ^(.*)$ "$1; Secure; HttpOnly; SameSite=Lax"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}

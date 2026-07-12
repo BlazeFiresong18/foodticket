@@ -1,0 +1,24 @@
+# FoodTicket production Caddyfile.
+#
+# Replace foodticket.example.com with your real domain.  The moment DNS
+# points at this server, Caddy obtains and renews a Let's Encrypt
+# certificate automatically — no certbot, no cron.
+# HTTP -> HTTPS redirect is automatic.
+
+foodticket.example.com {
+	# The OCaml app listens on loopback only; Caddy is the sole
+	# internet-facing process.
+	reverse_proxy 127.0.0.1:8080
+
+	encode gzip
+
+	header {
+		defer
+		# Eliom does not flag its session cookies; enforce here.
+		Set-Cookie ^(.*)$ "$1; Secure; HttpOnly; SameSite=Lax"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000"
+	}
+}

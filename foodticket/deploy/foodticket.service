@@ -1,0 +1,34 @@
+# systemd unit for the FoodTicket OCaml/Eliom app.
+# Install:  sudo cp deploy/foodticket.service /etc/systemd/system/
+#           sudo systemctl daemon-reload
+#           sudo systemctl enable --now foodticket
+#
+# Assumes the repo is checked out at /opt/foodticket and built with
+# `opam exec -- make all` as the "foodticket" system user (see
+# DEPLOYMENT.md for the full sequence).
+
+[Unit]
+Description=FoodTicket Eliom application (behind Caddy)
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=foodticket
+Group=foodticket
+WorkingDirectory=/opt/foodticket/foodticket
+# ocsigenserver resolves opam libraries through the environment;
+# opam exec provides OCAMLPATH/CAML_LD_LIBRARY_PATH for the build user.
+ExecStart=/usr/bin/env HOME=/home/foodticket opam exec -- ocsigenserver -c local/etc/foodticket/foodticket-test.conf
+Restart=on-failure
+RestartSec=3
+
+# Hardening: the app only needs its own directory and loopback.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/foodticket/foodticket
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

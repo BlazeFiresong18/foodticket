@@ -20,7 +20,7 @@
     </extension>
     %%% This will include the packages defined as SERVER_PACKAGES in your Makefile:
     %%PACKAGES%%
-    <host defaulthostname="localhost" hostfilter="localhost">
+    <host defaulthostname="localhost" hostfilter="*">
       <static dir="%%STATICDIR%%" />
       <static dir="%%ELIOMSTATICDIR%%" />
       <eliommodule module="%%LIBDIR%%/%%PROJECT_NAME%%.cma" />

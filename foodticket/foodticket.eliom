@@ -756,6 +756,16 @@ let () =
 
 let page ~title:t elts =
   Eliom_tools.F.html ~title:t ~css:[ [ "css"; "foodticket.css" ] ]
+    ~other_head:
+      Html.F.[
+        meta
+          ~a:
+            [
+              a_name "viewport";
+              a_content "width=device-width, initial-scale=1";
+            ]
+          ();
+      ]
     (Html.F.body elts)
 
 let page_script path =

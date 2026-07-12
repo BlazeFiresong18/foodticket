@@ -1,168 +1,237 @@
-﻿* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* FoodTicket — dark theme, mobile-first.
+   The QR box stays white on purpose: scanners need contrast. */
+
+:root {
+  --bg: #0e1116;
+  --bg-soft: #161b22;
+  --card: #1c2230;
+  --border: #2c3444;
+  --text: #e6e9ef;
+  --text-dim: #9aa4b2;
+  --accent: #10b981;
+  --accent-hover: #34d399;
+  --danger: #ef4444;
+  --danger-bg: #3b1219;
+  --ok-bg: #0e2f22;
+  --radius: 12px;
 }
 
+* { box-sizing: border-box; }
+
 html, body {
-    height: 100%;
-    width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Arial', sans-serif;
-    background: linear-gradient(135deg, #f5f7fb 0%, #e9ecf1 100%);
-    color: #1f2937;
+  background: radial-gradient(1200px 600px at 50% -100px, #1a2333 0%, var(--bg) 60%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ── layout shells ─────────────────────────────────────────── */
 .hero {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 30px;
-    padding: 20px;
-    text-align: center;
+  max-width: 520px;
+  margin: 6vh auto;
+  padding: 32px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.admin-wrap {
+  max-width: 1100px;
+  margin: 4vh auto;
+  padding: 28px 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
 }
 
 .title {
-    font-size: 4rem;
-    font-weight: 800;
-    color: #1f2937;
-    letter-spacing: -1px;
-    line-height: 1.2;
+  margin: 0 0 4px;
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
-    font-size: 1.25rem;
-    color: #6b7280;
-    font-weight: 400;
-    max-width: 500px;
-    line-height: 1.6;
+  margin: 0 0 22px;
+  color: var(--text-dim);
+  font-size: 1rem;
+  font-weight: 400;
 }
 
-.login-btn {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    color: white;
-    border: none;
-    padding: 16px 48px;
-    border-radius: 12px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
-    margin-top: 20px;
+h2, h3 { color: var(--text); }
+
+a { color: var(--accent-hover); }
+
+/* ── buttons & inputs ──────────────────────────────────────── */
+.login-btn, .tab-btn, button {
+  display: inline-block;
+  padding: 10px 22px;
+  margin: 6px 4px;
+  background: var(--accent);
+  color: #06251b;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
 
-.login-btn:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+.login-btn:hover, .tab-btn:hover, button:hover { background: var(--accent-hover); }
+.login-btn:active, button:active { transform: scale(0.98); }
+
+.tab-btn {
+  background: var(--bg-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.tab-btn:hover { background: var(--border); }
+
+input, select {
+  padding: 10px 12px;
+  margin: 6px 0;
+  background: var(--bg-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  max-width: 100%;
 }
 
-.login-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+input:focus, select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
 }
 
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .title {
-        font-size: 2.5rem;
-    }
+input::placeholder { color: var(--text-dim); }
 
-    .subtitle {
-        font-size: 1rem;
-    }
-
-    .login-btn {
-        padding: 14px 36px;
-        font-size: 1rem;
-    }
+/* ── QR display (white on purpose — scanners need contrast) ── */
+#qr-box {
+  display: inline-block;
+  background: #ffffff;
+  padding: 16px;
+  margin: 14px auto;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px var(--border), 0 12px 30px rgba(0, 0, 0, 0.5);
 }
-
-@media (max-width: 480px) {
-    .hero {
-        gap: 20px;
-        padding: 16px;
-    }
-
-    .title {
-        font-size: 2rem;
-    }
-
-    .subtitle {
-        font-size: 0.95rem;
-    }
-
-    .login-btn {
-        padding: 12px 32px;
-        font-size: 0.95rem;
-        width: 100%;
-        max-width: 300px;
-    }
-}
-
-.scanner-card {
-    width: min(100%, 640px);
-    display: grid;
-    gap: 18px;
-    background: white;
-    padding: 24px;
-    border-radius: 24px;
-    box-shadow: 0 18px 55px rgba(15, 23, 42, 0.12);
-    text-align: center;
-}
-
-#qr-reader {
-    width: 100%;
-    min-height: 360px;
-    border-radius: 16px;
-    overflow: hidden;
-    background: #111;
-}
-
-.scan-status {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    align-items: center;
-}
-
-#qr-status {
-    font-size: 1rem;
-    color: #111827;
-    font-weight: 600;
-}
-
-#qr-result {
-    width: 100%;
-    min-height: 4.5rem;
-    padding: 18px;
-    border-radius: 14px;
-    background: #f3f4f6;
-    color: #111827;
-    text-align: left;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
-/* ── dashboards ─────────────────────────────────────────────── */
-.data-table { margin: 16px auto; border-collapse: collapse; background: rgba(255,255,255,0.06); }
-.data-table th, .data-table td { border: 1px solid rgba(255,255,255,0.25); padding: 6px 10px; font-size: 0.92rem; }
-.data-table th { background: rgba(255,255,255,0.12); }
-.row-flagged td { background: rgba(255,80,80,0.25); }
-.status-ok { color: #7ce38b; }
-.status-bad { color: #ff7b72; font-weight: bold; }
-.warning-box { background: #7a1f1f; border: 2px solid #ff5252; color: #fff; padding: 16px; margin: 12px auto; max-width: 420px; border-radius: 8px; font-size: 1.05rem; }
-.success-box { background: #14532d; border: 2px solid #22c55e; color: #fff; padding: 16px; margin: 12px auto; max-width: 420px; border-radius: 8px; font-size: 1.05rem; }
-.info-box { background: rgba(255,255,255,0.08); padding: 12px; margin: 10px auto; max-width: 420px; border-radius: 8px; }
-.admin-wrap { padding: 24px; text-align: center; }
-.tab-btn { padding: 8px 18px; margin: 4px; font-size: 1rem; cursor: pointer; }
-.toolbar { margin: 12px 0; }
-.toolbar input, .toolbar select { padding: 6px; margin: 2px; }
-#qr-box { display: inline-block; background: #fff; padding: 14px; margin: 14px auto; border-radius: 8px; }
 #qr-box img, #qr-box canvas { display: block; }
+
+/* ── scanner ───────────────────────────────────────────────── */
+#qr-reader {
+  max-width: 340px;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+#qr-status { color: var(--text-dim); }
+
+/* ── status & message boxes ────────────────────────────────── */
+.status-ok { color: var(--accent-hover); font-weight: 600; }
+.status-bad { color: var(--danger); font-weight: 700; }
+
+.warning-box {
+  background: var(--danger-bg);
+  border: 2px solid var(--danger);
+  color: #fecaca;
+  padding: 16px;
+  margin: 14px auto;
+  max-width: 440px;
+  border-radius: var(--radius);
+  font-size: 1.05rem;
+}
+
+.success-box {
+  background: var(--ok-bg);
+  border: 2px solid var(--accent);
+  color: #bbf7d0;
+  padding: 16px;
+  margin: 14px auto;
+  max-width: 440px;
+  border-radius: var(--radius);
+  font-size: 1.05rem;
+}
+
+.info-box {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  margin: 12px auto;
+  max-width: 440px;
+  border-radius: var(--radius);
+}
+
+/* ── tables ────────────────────────────────────────────────── */
+.data-table {
+  margin: 16px auto;
+  border-collapse: collapse;
+  background: var(--bg-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.data-table th, .data-table td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  font-size: 0.92rem;
+  text-align: left;
+}
+
+.data-table th {
+  background: var(--card);
+  color: var(--text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+
+.data-table small { color: var(--text-dim); }
+
+.row-flagged td { background: var(--danger-bg); }
+
+.data-table input, .data-table select {
+  padding: 6px 8px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.data-table button {
+  padding: 6px 12px;
+  margin: 2px;
+  font-size: 0.85rem;
+}
+
+.toolbar { margin: 14px 0; }
+.toolbar input, .toolbar select { margin: 4px; }
+
+#admin-tabs { margin-bottom: 10px; }
+
+/* ── mobile ────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .hero { margin: 2vh 10px; padding: 24px 14px; }
+  .admin-wrap { margin: 1vh 6px; padding: 18px 8px; }
+  .title { font-size: 1.5rem; }
+
+  /* wide tables scroll sideways instead of breaking the layout */
+  .data-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .login-btn, button { padding: 12px 20px; } /* bigger touch targets */
+}

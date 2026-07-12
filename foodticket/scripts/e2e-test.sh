@@ -6,7 +6,10 @@ set -u
 cd "$(dirname "$0")/.."
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
 
-BASE="${FT_BASE_URL:-http://localhost:8080}"
+# E2E_BASE overrides the target (e.g. https://localhost:8443 through the
+# proxy); E2E_INSECURE=1 accepts the dry-run self-signed certificate.
+BASE="${E2E_BASE:-${FT_BASE_URL:-http://localhost:8080}}"
+curl() { command curl ${E2E_INSECURE:+-k} "$@"; }
 J=/tmp/ft-e2e
 mkdir -p "$J"
 CUST="${FT_SMTP_USER%@*}+e2ecust@${FT_SMTP_USER#*@}"
