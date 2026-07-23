@@ -50,13 +50,18 @@ document.addEventListener("DOMContentLoaded", function () {
     bindScanNext();
   }
 
+  function renderHistory(history) {
+    if (!history || !history.length) return "<br/><small>No previous redemptions.</small>";
+    return "<br/><small>Previous redemptions: " + history.map(escapeHtml).join(", ") + "</small>";
+  }
+
   // ── redemption flow ─────────────────────────────────────────────────
   function handleVerify(data, payload) {
     if (data.status === "otp_sent") {
       setStatus("Customer verified — awaiting OTP.");
       setPanel(
         '<div class="info-box">Customer: <b>' + escapeHtml(data.name) + "</b><br/>" +
-        "OTP sent to " + escapeHtml(data.masked_email) + "</div>" +
+        "OTP sent to " + escapeHtml(data.masked_email) + renderHistory(data.history) + "</div>" +
         '<input id="f-otp" type="text" inputmode="numeric" placeholder="6-digit OTP" maxlength="6" ' +
         'style="padding:8px;font-size:1rem;width:200px;margin:8px 0;display:inline-block"/> ' +
         '<button id="f-confirm" class="login-btn">Confirm</button> ' +
@@ -87,7 +92,7 @@ document.addEventListener("DOMContentLoaded", function () {
     } else if (data.status === "already_redeemed") {
       setStatus("Blocked.");
       warn("⚠️ <b>" + escapeHtml(data.name) + "</b> has ALREADY redeemed a meal today.<br/>" +
-           "Do not serve. This attempt has been logged for admin review.");
+           "Do not serve. This attempt has been logged for admin review." + renderHistory(data.history));
     } else if (data.status === "inactive") {
       setStatus("Blocked.");
       warn("⚠️ Account for <b>" + escapeHtml(data.name) + "</b> is deactivated. Attempt logged.");
@@ -120,6 +125,15 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!html5QrCode || scanning) return;
     scanning = true;
     setStatus("Starting camera...");
+
+    function onDecoded(decodedText) {
+      html5QrCode.stop().catch(function () {});
+      scanning = false;
+      onScan(decodedText);
+    }
+    function onScanFailure() { setStatus("Scanning..."); }
+    var config = { fps: 10, qrbox: { width: 280, height: 280 } };
+
     window.Html5Qrcode.getCameras()
       .then(function (devices) {
         if (!devices || devices.length === 0) {
@@ -127,16 +141,21 @@ document.addEventListener("DOMContentLoaded", function () {
           setStatus("No camera found.");
           return;
         }
-        return html5QrCode.start(
-          { deviceId: { exact: devices[0].id } },
-          { fps: 10, qrbox: { width: 280, height: 280 } },
-          function (decodedText) {
-            html5QrCode.stop().catch(function () {});
-            scanning = false;
-            onScan(decodedText);
-          },
-          function () { setStatus("Scanning..."); }
-        );
+        // Prefer the rear/environment-facing camera — phones otherwise
+        // often default to the front camera, which is useless for
+        // scanning a code held up in front of you. Devices with no rear
+        // camera (most laptops) reject the constraint, so fall back to
+        // whatever the first camera is.
+        return html5QrCode
+          .start({ facingMode: "environment" }, config, onDecoded, onScanFailure)
+          .catch(function () {
+            return html5QrCode.start(
+              { deviceId: { exact: devices[0].id } },
+              config,
+              onDecoded,
+              onScanFailure
+            );
+          });
       })
       .catch(function (err) {
         scanning = false;

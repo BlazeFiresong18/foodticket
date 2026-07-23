@@ -78,6 +78,19 @@ let redeemed_today db ~user_id ~email =
   in
   Mysql.size res > Int64.zero
 
+(* Shown to scanning staff (not the customer) when they scan a QR — gives
+   them context on this customer's past redemptions. *)
+let recent_redemptions db ~user_id ~email =
+  Ft_db.fetch_all
+    (Ft_db.exec db
+       (Printf.sprintf
+          "SELECT DATE_FORMAT(redeemed_at,'%%Y-%%m-%%d %%H:%%i') FROM \
+           redemptions WHERE (user_id=%d OR email='%s') ORDER BY \
+           redeemed_at DESC LIMIT 10"
+          user_id (Ft_db.escape email)))
+  |> List.filter_map (fun row ->
+      match row with [| d |] -> Some (Ft_db.s d) | _ -> None)
+
 let create_otp db ~email =
   let otp = Ft_util.generate_otp () in
   ignore
@@ -451,13 +464,14 @@ let () =
                       else if redeemed_today db ~user_id:uid ~email then begin
                         log_scan db ~scanner_id:(Some staff_id) ~raw:payload
                           ~matched:(Some uid) ~result:"cooldown";
-                        `Cooldown name
+                        `Cooldown (name, recent_redemptions db ~user_id:uid ~email)
                       end
                       else begin
                         let otp = create_otp db ~email in
                         log_scan db ~scanner_id:(Some staff_id) ~raw:payload
                           ~matched:(Some uid) ~result:"otp_sent";
-                        `OtpNeeded (email, name, otp)
+                        `OtpNeeded
+                          (email, name, otp, recent_redemptions db ~user_id:uid ~email)
                       end)
               in
               (match outcome with
@@ -469,19 +483,28 @@ let () =
                  send_json
                    (Printf.sprintf {|{"status":"inactive","name":"%s"}|}
                       (json_escape name))
-               | `Cooldown name ->
+               | `Cooldown (name, history) ->
                  send_json
-                   (Printf.sprintf
-                      {|{"status":"already_redeemed","name":"%s"}|}
-                      (json_escape name))
-               | `OtpNeeded (email, name, otp) ->
+                   (Yojson.Safe.to_string
+                      (`Assoc
+                        [
+                          ("status", `String "already_redeemed");
+                          ("name", `String name);
+                          ("history", `List (List.map (fun d -> `String d) history));
+                        ]))
+               | `OtpNeeded (email, name, otp, history) ->
                  let%lwt sent = Ft_mail.send_otp ~to_email:email ~otp in
                  if sent then
                    send_json
-                     (Printf.sprintf
-                        {|{"status":"otp_sent","name":"%s","masked_email":"%s"}|}
-                        (json_escape name)
-                        (json_escape (Ft_util.mask_email email)))
+                     (Yojson.Safe.to_string
+                        (`Assoc
+                          [
+                            ("status", `String "otp_sent");
+                            ("name", `String name);
+                            ("masked_email", `String (Ft_util.mask_email email));
+                            ( "history",
+                              `List (List.map (fun d -> `String d) history) );
+                          ]))
                  else send_json {|{"status":"email_failed"}|}))))
 
 let () =
@@ -1077,7 +1100,7 @@ let () =
       match user with
       | None -> Lwt.return (access_denied ~needed:"a customer account")
       | Some user ->
-        let token, redeemed, history =
+        let token, redeemed =
           Ft_db.with_db (fun db ->
               let token =
                 let res =
@@ -1104,19 +1127,7 @@ let () =
                 redeemed_today db ~user_id:user.Ft_auth.id
                   ~email:user.Ft_auth.email
               in
-              let history =
-                Ft_db.fetch_all
-                  (Ft_db.exec db
-                     (Printf.sprintf
-                        "SELECT DATE_FORMAT(redeemed_at,'%%Y-%%m-%%d %%H:%%i') \
-                         FROM redemptions WHERE (user_id=%d OR email='%s') \
-                         ORDER BY redeemed_at DESC LIMIT 30"
-                        user.Ft_auth.id
-                        (Ft_db.escape user.Ft_auth.email)))
-                |> List.filter_map (fun row ->
-                    match row with [| d |] -> Some (Ft_db.s d) | _ -> None)
-              in
-              (token, redeemed, history))
+              (token, redeemed))
         in
         Lwt.return
           (page ~title:"My FoodTicket"
@@ -1146,13 +1157,6 @@ let () =
                             "Already redeemed today — next meal tomorrow."
                           else "Available: show this QR at the counter.");
                      ];
-                   h2 [ txt "Redemption history" ];
-                   (if history = [] then p [ txt "No redemptions yet." ]
-                    else
-                      table
-                        ~a:[ a_class [ "data-table" ] ]
-                        (tr [ th [ txt "Redeemed at" ] ]
-                         :: List.map (fun d -> tr [ td [ txt d ] ]) history));
                    p
                      [
                        button
