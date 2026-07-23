@@ -116,12 +116,16 @@ let parse_qr_payload payload =
   in
   if Ft_util.is_valid_token token then Some token else None
 
+(* Staff (scanner/admin) accounts must never be redeemable, even if one
+   somehow still carries a qr_token (e.g. after a role change) — enforce
+   the customer-only boundary here, at the one place every scan goes
+   through, rather than trusting every token-issuing call site. *)
 let find_user_by_token db token =
   let res =
     Ft_db.exec db
       (Printf.sprintf
          "SELECT id, email, name, is_active FROM users WHERE qr_token='%s' \
-          LIMIT 1"
+          AND role='customer' LIMIT 1"
          (Ft_db.escape token))
   in
   match Mysql.fetch res with
@@ -614,15 +618,24 @@ let () =
                    Printf.sprintf ", password='%s'"
                      (Ft_db.escape (Ft_auth.hash_password password))
                in
+               (* A staff account should never carry a leftover redeemable
+                  QR identity from when it was (or briefly became) a
+                  customer — scan-time already blocks non-customers
+                  regardless, this just keeps the data itself clean. *)
+               let qr_clause =
+                 if role = "customer" then ""
+                 else ", qr_token=NULL, qr_issued_at=NULL"
+               in
                let updated =
                  Ft_db.with_db (fun db ->
                      ignore
                        (Ft_db.exec db
                           (Printf.sprintf
                              "UPDATE users SET name='%s', email='%s', \
-                              role='%s', is_active=%d%s WHERE id=%d"
+                              role='%s', is_active=%d%s%s WHERE id=%d"
                              (Ft_db.escape name) (Ft_db.escape email)
-                             (Ft_db.escape role) active pw_clause id));
+                             (Ft_db.escape role) active pw_clause qr_clause
+                             id));
                      let n = Mysql.affected db in
                      audit db ~admin_id:admin.Ft_auth.id ~action:"user.update"
                        ~target:(string_of_int id)
@@ -698,15 +711,22 @@ let () =
                   in
                   if Mysql.size res > Int64.zero then `Exists
                   else begin
-                    let token = Ft_util.new_token () in
+                    (* Only customers get a redeemable QR identity; staff
+                       accounts (scanner/admin) stay without one. *)
+                    let qr_token_sql, qr_issued_at_sql =
+                      if role = "customer" then
+                        (Printf.sprintf "'%s'" (Ft_util.new_token ()), "NOW()")
+                      else ("NULL", "NULL")
+                    in
                     ignore
                       (Ft_db.exec db
                          (Printf.sprintf
                             "INSERT INTO users (email, name, password, role, \
                              qr_token, qr_issued_at) VALUES \
-                             ('%s','%s','%s','%s','%s',NOW())"
+                             ('%s','%s','%s','%s',%s,%s)"
                             (Ft_db.escape email) (Ft_db.escape name)
-                            (Ft_db.escape hash) (Ft_db.escape role) token));
+                            (Ft_db.escape hash) (Ft_db.escape role)
+                            qr_token_sql qr_issued_at_sql));
                     audit db ~admin_id:admin.Ft_auth.id ~action:"user.create"
                       ~target:email ~details:("role=" ^ role);
                     `Created
@@ -732,7 +752,7 @@ let () =
               if id_list = [] then None
               else
                 Some
-                  (Printf.sprintf "id IN (%s)"
+                  (Printf.sprintf "id IN (%s) AND role='customer'"
                      (String.concat ","
                         (List.map string_of_int id_list)))
             end

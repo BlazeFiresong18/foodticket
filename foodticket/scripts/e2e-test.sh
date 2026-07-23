@@ -117,6 +117,19 @@ check "audit log has user.update" '"action":"user.update"' \
 check "admin create user" '"status":"success"' \
   "$(post adm.jar /api/admin/user-create "email=e2e-created@example.com" "name=Created" "password=$PW" "role=scanner")"
 NID=$(sql "SELECT id FROM users WHERE email='e2e-created@example.com'")
+
+echo "== staff accounts must never be redeemable =="
+CREATED_TOKEN=$(sql "SELECT IFNULL(qr_token,'') FROM users WHERE id=$NID")
+if [ -z "$CREATED_TOKEN" ]; then pass=$((pass+1)); echo "PASS: admin-created scanner gets no qr_token"
+else fail=$((fail+1)); echo "FAIL: admin-created scanner gets no qr_token — got [$CREATED_TOKEN]"; fi
+# Force a token directly (simulating any stray-token path) and confirm the
+# scan-time role check blocks it regardless of how the token got there.
+FORCED="ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+sql "UPDATE users SET qr_token='$FORCED' WHERE id=$NID"
+check "forced token on a scanner account cannot be scanned" '"status":"invalid"' \
+  "$(post scan.jar /api/scan/verify "payload=FT1:$FORCED")"
+sql "UPDATE users SET qr_token=NULL WHERE id=$NID"
+
 check "admin delete user" '"status":"success"' \
   "$(post adm.jar /api/admin/user-delete "id=$NID")"
 check "audit log has user.delete" '"action":"user.delete"' \
