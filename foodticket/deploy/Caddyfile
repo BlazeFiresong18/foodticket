@@ -20,5 +20,9 @@ foodticket.example.com {
 		X-Frame-Options DENY
 		Referrer-Policy strict-origin-when-cross-origin
 		Strict-Transport-Security "max-age=31536000"
+		# Everything the app loads is same-origin (no CDNs); the JS builds
+		# some elements with inline style="" attributes, hence unsafe-inline
+		# on style-src only, not script-src.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 	}
 }

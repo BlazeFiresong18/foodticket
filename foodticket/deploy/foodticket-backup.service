@@ -1,0 +1,19 @@
+# One-shot DB backup, triggered by foodticket-backup.timer.
+# Install:  sudo cp deploy/foodticket-backup.service deploy/foodticket-backup.timer /etc/systemd/system/
+#           sudo systemctl daemon-reload
+#           sudo systemctl enable --now foodticket-backup.timer
+#
+# Backups land in /opt/foodticket/foodticket/backups by default; point
+# FT_BACKUP_DIR elsewhere (ideally off-box / a mounted volume) via
+# Environment= below once you have somewhere better than local disk.
+
+[Unit]
+Description=FoodTicket database backup
+After=mysql.service
+
+[Service]
+Type=oneshot
+User=foodticket
+Group=foodticket
+WorkingDirectory=/opt/foodticket/foodticket
+ExecStart=/usr/bin/env HOME=/home/foodticket bash scripts/backup-db.sh

@@ -100,4 +100,64 @@ document.addEventListener("DOMContentLoaded", function () {
         .catch(function() { setStatus("Network error. Try again."); });
     };
   }
+
+  // ── Forgot-password page ────────────────────────────────────────────
+  var forgotContainer = document.getElementById("forgot-container");
+  if (forgotContainer) {
+    forgotContainer.innerHTML =
+      '<input id="forgot-email" type="email" placeholder="you@email.com" ' +
+      'style="padding:8px;font-size:1rem;width:260px;margin:8px 0;display:block"/>' +
+      '<button id="forgot-submit" class="login-btn">Send reset link</button>';
+
+    document.getElementById("forgot-submit").onclick = function () {
+      var email = document.getElementById("forgot-email").value.trim();
+      if (!email) { setStatus("Please enter your email."); return; }
+      setStatus("Sending...");
+      post("/api/forgot-password", { email: email })
+        .then(function (data) {
+          if (data.status === "rate_limited") {
+            setStatus("Too many attempts. Please wait a while and try again.");
+          } else {
+            setStatus("If that email has an account, a reset link is on its way.");
+          }
+        })
+        .catch(function () { setStatus("Network error. Try again."); });
+    };
+  }
+
+  // ── Reset-password page ─────────────────────────────────────────────
+  var resetContainer = document.getElementById("reset-container");
+  if (resetContainer) {
+    var resetToken = resetContainer.dataset.token || "";
+    if (!resetToken) {
+      resetContainer.textContent = "Missing or invalid reset link.";
+    } else {
+      resetContainer.innerHTML =
+        '<input id="reset-password" type="password" ' +
+        'placeholder="New password (min 8 characters)" ' +
+        'style="padding:8px;font-size:1rem;width:260px;margin:8px 0;display:block"/>' +
+        '<button id="reset-submit" class="login-btn">Reset password</button>';
+
+      document.getElementById("reset-submit").onclick = function () {
+        var password = document.getElementById("reset-password").value;
+        if (!password) { setStatus("Please enter a new password."); return; }
+        setStatus("Resetting...");
+        post("/api/reset-password", { token: resetToken, password: password })
+          .then(function (data) {
+            if (data.status === "success") {
+              setStatus('Password reset! <a href="/login">Login now</a>');
+            } else if (data.status === "weak_password") {
+              setStatus("Password must be at least 8 characters.");
+            } else if (data.status === "invalid_token") {
+              setStatus('This reset link is invalid or has expired. <a href="/forgot-password">Request a new one</a>.');
+            } else if (data.status === "rate_limited") {
+              setStatus("Too many attempts. Please wait a while and try again.");
+            } else {
+              setStatus("Something went wrong. Try again.");
+            }
+          })
+          .catch(function () { setStatus("Network error. Try again."); });
+      };
+    }
+  }
 });

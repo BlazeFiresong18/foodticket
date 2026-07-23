@@ -124,12 +124,38 @@ X-Frame-Options).
 
 ```bash
 cd /opt/foodticket/foodticket
-FT_BASE_URL=https://your.domain ./scripts/e2e-test.sh   # 35 checks
+FT_BASE_URL=https://your.domain ./scripts/e2e-test.sh   # 42 checks
 ```
 
 Then in a phone browser: register, log in, check the dashboard QR renders,
 and confirm the **scanner camera works** — mobile browsers only allow
 camera access over HTTPS, which is now the case.
+
+## 9. Database backups
+
+```bash
+sudo cp deploy/foodticket-backup.service deploy/foodticket-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now foodticket-backup.timer
+systemctl list-timers foodticket-backup.timer   # confirm it's scheduled
+```
+
+Runs `scripts/backup-db.sh` daily: a `mysqldump` gzipped into
+`foodticket/backups/`, with anything older than `FT_BACKUP_RETENTION_DAYS`
+(default 14 days) pruned automatically. Local-disk backups only protect you
+if the VM's disk survives — for real durability, also sync `backups/` to
+off-box storage (rsync to another host, or a cheap object-storage bucket);
+that step isn't automated here since it depends on what you have available.
+
+## 10. Log rotation
+
+```bash
+sudo cp deploy/foodticket.logrotate /etc/logrotate.d/foodticket
+sudo logrotate -d /etc/logrotate.d/foodticket   # dry run, sanity check
+```
+
+Rotates `foodticket-app.log` and the ocsigenserver logs in
+`local/var/log/foodticket/`, keeping 14 days compressed.
 
 ## Updating a running deployment
 

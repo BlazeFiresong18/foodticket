@@ -37,6 +37,16 @@ let send_otp ~to_email ~otp =
       (Printf.sprintf
          "Your FoodTicket OTP is: %s\n\nIt expires in 10 minutes." otp)
 
+let send_password_reset ~to_email ~reset_url =
+  send_plain ~to_email ~subject:"Reset your FoodTicket password"
+    ~text:
+      (Printf.sprintf
+         "We received a request to reset your FoodTicket password.\n\n\
+          Reset it here (valid for 1 hour): %s\n\n\
+          If you didn't request this, you can ignore this email — your \
+          password won't change."
+         reset_url)
+
 (* ---- QR emails via the Python helper --------------------------------- *)
 
 let qr_mailer_path =

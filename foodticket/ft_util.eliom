@@ -85,8 +85,23 @@ let base64url_encode s =
    | _ -> ());
   Buffer.contents buf
 
-(* 32 random bytes as 43 base64url chars; used as the customer QR token. *)
+(* 32 random bytes as 43 base64url chars; used as the customer QR token and
+   password-reset tokens. *)
 let new_token () = base64url_encode (urandom 32)
+
+let is_valid_token s =
+  String.length s = 43
+  &&
+  let ok = ref true in
+  String.iter
+    (fun c ->
+       if
+         not
+           ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+            || (c >= '0' && c <= '9') || c = '-' || c = '_')
+       then ok := false)
+    s;
+  !ok
 
 (* Uniform 6-digit OTP via rejection sampling (no modulo bias). *)
 let generate_otp () =

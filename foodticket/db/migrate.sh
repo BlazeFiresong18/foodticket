@@ -20,6 +20,10 @@ run_sql -e "CREATE TABLE IF NOT EXISTS schema_migrations (
   version INT PRIMARY KEY,
   applied_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
 
+# Baseline tables (users/otps/redemptions) predate the versioned migrations
+# below; this is idempotent so it's a no-op on an already-provisioned DB.
+run_sql < db/baseline_schema.sql
+
 for f in db/migrations/*.sql; do
   v=$(basename "$f" | sed 's/^0*\([0-9]*\).*/\1/')
   applied=$(run_sql -N -e "SELECT COUNT(*) FROM schema_migrations WHERE version=$v")

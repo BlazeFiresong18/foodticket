@@ -39,6 +39,7 @@ post() { # jar url data...
 sql "DELETE FROM users WHERE email IN ('$CUST','$SCAN','$ADM')"
 sql "DELETE FROM redemptions WHERE email IN ('$CUST','$SCAN','$ADM')"
 sql "DELETE FROM otps WHERE email IN ('$CUST','$SCAN','$ADM')"
+sql "DELETE FROM password_resets WHERE email IN ('$CUST','$SCAN','$ADM')"
 rm -f "$J"/*.jar
 
 echo "== registration =="
@@ -127,6 +128,24 @@ for i in 1 2 3 4 5 6 7; do
   RL=$(curl -s -X POST "$BASE/api/login" -d "email=rl-test@example.com" -d "password=nope")
 done
 check "login rate limit kicks in" '"status":"rate_limited"' "$RL"
+
+echo "== forgot / reset password =="
+check "forgot password (existing email)" '"status":"success"' \
+  "$(post cust.jar /api/forgot-password "email=$CUST")"
+RESET_TOKEN=$(sql "SELECT token FROM password_resets WHERE email='$CUST' ORDER BY id DESC LIMIT 1")
+if [ "${#RESET_TOKEN}" = "43" ]; then pass=$((pass+1)); echo "PASS: reset token created"
+else fail=$((fail+1)); echo "FAIL: reset token created — got [$RESET_TOKEN]"; fi
+NEWPW="e2e-new-password-456"
+check "reset with garbage token" '"status":"invalid_token"' \
+  "$(post cust.jar /api/reset-password "token=0000000000000000000000000000000000000000000" "password=$NEWPW")"
+check "reset with real token" '"status":"success"' \
+  "$(post cust.jar /api/reset-password "token=$RESET_TOKEN" "password=$NEWPW")"
+check "login with new password" '"status":"success"' \
+  "$(post cust.jar /api/login "email=$CUST" "password=$NEWPW")"
+check "reset token reuse rejected" '"status":"invalid_token"' \
+  "$(post cust.jar /api/reset-password "token=$RESET_TOKEN" "password=another-password-789")"
+check "forgot password unknown email -> still success (no enumeration)" '"status":"success"' \
+  "$(post cust.jar /api/forgot-password "email=nonexistent-$CUST")"
 
 echo "== logout =="
 check "logout" '"status":"success"' "$(post cust.jar /api/logout)"

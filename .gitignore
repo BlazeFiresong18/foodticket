@@ -29,3 +29,6 @@ __pycache__/
 # app runtime artifacts
 foodticket/foodticket-app.log
 foodticket/_tools/
+
+# DB dumps — contain user emails and password hashes
+foodticket/backups/

@@ -1,0 +1,15 @@
+# Install:  sudo cp deploy/foodticket.logrotate /etc/logrotate.d/foodticket
+# logrotate runs daily via cron/systemd-timer on Debian/Ubuntu by default.
+
+/opt/foodticket/foodticket/foodticket-app.log
+/opt/foodticket/foodticket/local/var/log/foodticket/*.log
+{
+	daily
+	rotate 14
+	compress
+	delaycompress
+	missingok
+	notifempty
+	su foodticket foodticket
+	create 0640 foodticket foodticket
+}

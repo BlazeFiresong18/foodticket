@@ -91,6 +91,21 @@ let create_otp db ~email =
           (Ft_db.escape email) otp));
   otp
 
+(* A fresh reset token invalidates any previously issued one for this email. *)
+let create_password_reset db ~email =
+  let token = Ft_util.new_token () in
+  ignore
+    (Ft_db.exec db
+       (Printf.sprintf "DELETE FROM password_resets WHERE email='%s'"
+          (Ft_db.escape email)));
+  ignore
+    (Ft_db.exec db
+       (Printf.sprintf
+          "INSERT INTO password_resets (email, token, expires_at) VALUES \
+           ('%s','%s', NOW() + INTERVAL 1 HOUR)"
+          (Ft_db.escape email) (Ft_db.escape token)));
+  token
+
 (* QR payload is "FT1:" ^ 43-char base64url token. *)
 let parse_qr_payload payload =
   let payload = String.trim payload in
@@ -99,16 +114,7 @@ let parse_qr_payload payload =
       String.sub payload 4 (String.length payload - 4)
     else payload
   in
-  let valid_char c =
-    (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
-    || (c >= '0' && c <= '9') || c = '-' || c = '_'
-  in
-  if String.length token = 43 then begin
-    let ok = ref true in
-    String.iter (fun c -> if not (valid_char c) then ok := false) token;
-    if !ok then Some token else None
-  end
-  else None
+  if Ft_util.is_valid_token token then Some token else None
 
 let find_user_by_token db token =
   let res =
@@ -137,6 +143,15 @@ let register_service =
   Eliom_service.create ~path:(Eliom_service.Path ["register"])
     ~meth:(Eliom_service.Get Eliom_parameter.unit) ()
 
+let forgot_password_service =
+  Eliom_service.create ~path:(Eliom_service.Path ["forgot-password"])
+    ~meth:(Eliom_service.Get Eliom_parameter.unit) ()
+
+let reset_password_service =
+  Eliom_service.create ~path:(Eliom_service.Path ["reset-password"])
+    ~meth:(Eliom_service.Get (Eliom_parameter.opt (Eliom_parameter.string "token")))
+    ()
+
 let dashboard_service =
   Eliom_service.create ~path:(Eliom_service.Path ["dashboard"])
     ~meth:(Eliom_service.Get Eliom_parameter.unit) ()
@@ -161,6 +176,13 @@ let api_register_user =
     Eliom_parameter.(string "email" ** string "name" ** string "password")
 
 let api_logout = post_api ["api"; "logout"] Eliom_parameter.unit
+
+let api_forgot_password =
+  post_api ["api"; "forgot-password"] Eliom_parameter.(string "email")
+
+let api_reset_password =
+  post_api ["api"; "reset-password"]
+    Eliom_parameter.(string "token" ** string "password")
 
 let api_scan_verify =
   post_api ["api"; "scan"; "verify"] Eliom_parameter.(string "payload")
@@ -293,6 +315,97 @@ let () =
     (api_handler "logout" (fun () () ->
        let%lwt () = Ft_auth.logout () in
        send_json {|{"status":"success"}|}))
+
+let () =
+  Eliom_registration.Any.register ~service:api_forgot_password
+    (api_handler "forgot-password" (fun () email ->
+       let ip = client_ip () in
+       if
+         not
+           (Ft_util.rate_allow ~key:("forgot-ip:" ^ ip) ~limit:10
+              ~window_s:3600.
+            && Ft_util.rate_allow ~key:("forgot-email:" ^ email) ~limit:3
+                 ~window_s:3600.)
+       then send_json ~code:429 {|{"status":"rate_limited"}|}
+       else if not (Ft_util.is_valid_email email) then
+         (* Same generic response as an unknown email: no enumeration. *)
+         send_json {|{"status":"success"}|}
+       else begin
+         let token_opt =
+           Ft_db.with_db (fun db ->
+               let res =
+                 Ft_db.exec db
+                   (Printf.sprintf
+                      "SELECT id FROM users WHERE email='%s' AND is_active=1 \
+                       LIMIT 1"
+                      (Ft_db.escape email))
+               in
+               match Mysql.fetch res with
+               | Some [| Some _id |] -> Some (create_password_reset db ~email)
+               | _ -> None)
+         in
+         let%lwt () =
+           match token_opt with
+           | None -> Lwt.return ()
+           | Some token ->
+             let reset_url =
+               Ft_config.base_url ^ "/reset-password?token=" ^ token
+             in
+             let%lwt sent = Ft_mail.send_password_reset ~to_email:email ~reset_url in
+             Lwt.return
+               (if sent then
+                  Ft_log.info "password_reset_requested"
+                    [ ("email", email); ("ip", ip) ]
+                else
+                  Ft_log.error "password_reset_email_failed"
+                    [ ("email", email) ])
+         in
+         send_json {|{"status":"success"}|}
+       end))
+
+let () =
+  Eliom_registration.Any.register ~service:api_reset_password
+    (api_handler "reset-password" (fun () (token, password) ->
+       let ip = client_ip () in
+       if not (Ft_util.rate_allow ~key:("reset-ip:" ^ ip) ~limit:20 ~window_s:3600.)
+       then send_json ~code:429 {|{"status":"rate_limited"}|}
+       else if not (Ft_util.is_valid_token token) then
+         send_json {|{"status":"invalid_token"}|}
+       else if not (Ft_util.is_valid_password password) then
+         send_json {|{"status":"weak_password"}|}
+       else begin
+         let outcome =
+           Ft_db.with_db (fun db ->
+               let res =
+                 Ft_db.exec db
+                   (Printf.sprintf
+                      "SELECT email FROM password_resets WHERE token='%s' \
+                       AND expires_at > NOW() AND used=0 LIMIT 1"
+                      (Ft_db.escape token))
+               in
+               match Mysql.fetch res with
+               | Some [| Some email |] ->
+                 let hash = Ft_auth.hash_password password in
+                 ignore
+                   (Ft_db.exec db
+                      (Printf.sprintf
+                         "UPDATE users SET password='%s' WHERE email='%s'"
+                         (Ft_db.escape hash) (Ft_db.escape email)));
+                 ignore
+                   (Ft_db.exec db
+                      (Printf.sprintf
+                         "UPDATE password_resets SET used=1 WHERE token='%s'"
+                         (Ft_db.escape token)));
+                 Some email
+               | _ -> None)
+         in
+         match outcome with
+         | None -> send_json {|{"status":"invalid_token"}|}
+         | Some email ->
+           Ft_log.info "password_reset_completed"
+             [ ("email", email); ("ip", ip) ];
+           send_json {|{"status":"success"}|}
+       end))
 
 (* ==== Scanner APIs ==================================================== *)
 
@@ -848,6 +961,51 @@ let () =
                      a ~service:register_service ~a:[ a_class [ "login-btn" ] ]
                        [ txt "New here? Register" ] ();
                    ];
+                 p
+                   [
+                     a ~service:forgot_password_service
+                       ~a:[ a_class [ "login-btn" ] ]
+                       [ txt "Forgot password?" ] ();
+                   ];
+               ];
+           ]))
+
+let () =
+  Foodticket_app.register ~service:forgot_password_service (fun () () ->
+      Lwt.return
+        (page ~title:"Forgot password"
+           Html.F.[
+             hero
+               [
+                 h1 ~a:[ a_class [ "title" ] ] [ txt "Forgot password" ];
+                 p ~a:[ a_class [ "subtitle" ] ]
+                   [ txt "Enter your account email and we'll send you a reset link." ];
+                 div ~a:[ a_id "forgot-container" ] [];
+                 p ~a:[ a_id "auth-status" ] [ txt "" ];
+                 page_script "/js/auth.js";
+                 p
+                   [
+                     a ~service:login_service ~a:[ a_class [ "login-btn" ] ]
+                       [ txt "Back to login" ] ();
+                   ];
+               ];
+           ]))
+
+let () =
+  Foodticket_app.register ~service:reset_password_service (fun token () ->
+      let token = match token with Some t -> t | None -> "" in
+      Lwt.return
+        (page ~title:"Reset password"
+           Html.F.[
+             hero
+               [
+                 h1 ~a:[ a_class [ "title" ] ] [ txt "Reset password" ];
+                 p ~a:[ a_class [ "subtitle" ] ] [ txt "Choose a new password." ];
+                 div
+                   ~a:[ a_id "reset-container"; a_user_data "token" token ]
+                   [];
+                 p ~a:[ a_id "auth-status" ] [ txt "" ];
+                 page_script "/js/auth.js";
                ];
            ]))
 
@@ -874,9 +1032,9 @@ let () =
 (* Customer dashboard: their QR code + redemption status/history. *)
 let () =
   Foodticket_app.register ~service:dashboard_service (fun () () ->
-      let%lwt user = Ft_auth.current_user () in
+      let%lwt user = Ft_auth.require [ "customer" ] in
       match user with
-      | None -> Lwt.return (access_denied ~needed:"a logged-in account")
+      | None -> Lwt.return (access_denied ~needed:"a customer account")
       | Some user ->
         let token, redeemed, history =
           Ft_db.with_db (fun db ->
