@@ -924,22 +924,43 @@ let () =
                     div
                       [
                         p [ txt ("Signed in as " ^ user.Ft_auth.name) ];
-                        p
-                          [
-                            (match user.Ft_auth.role with
-                             | "admin" ->
-                               a ~service:admin_service
-                                 ~a:[ a_class [ "login-btn" ] ]
-                                 [ txt "Admin dashboard" ] ()
-                             | "scanner" ->
-                               a ~service:scanner_service
-                                 ~a:[ a_class [ "login-btn" ] ]
-                                 [ txt "Scanner" ] ()
-                             | _ ->
-                               a ~service:dashboard_service
-                                 ~a:[ a_class [ "login-btn" ] ]
-                                 [ txt "My dashboard" ] ());
-                          ];
+                        (match user.Ft_auth.role with
+                         | "admin" ->
+                           div
+                             [
+                               p
+                                 [
+                                   a ~service:admin_service
+                                     ~a:[ a_class [ "login-btn" ] ]
+                                     [ txt "Admin dashboard" ] ();
+                                 ];
+                               p
+                                 [
+                                   a ~service:scanner_service
+                                     ~a:[ a_class [ "login-btn" ] ]
+                                     [ txt "Scanner" ] ();
+                                 ];
+                             ]
+                         | "scanner" ->
+                           div
+                             [
+                               p
+                                 [
+                                   a ~service:scanner_service
+                                     ~a:[ a_class [ "login-btn" ] ]
+                                     [ txt "Scanner" ] ();
+                                 ];
+                             ]
+                         | _ ->
+                           div
+                             [
+                               p
+                                 [
+                                   a ~service:dashboard_service
+                                     ~a:[ a_class [ "login-btn" ] ]
+                                     [ txt "My dashboard" ] ();
+                                 ];
+                             ]);
                       ]);
                ];
            ]))
@@ -1142,11 +1163,18 @@ let () =
                    div ~a:[ a_id "scan-panel" ] [];
                    p ~a:[ a_id "qr-status" ] [ txt "Loading scanner..." ];
                    p
-                     [
-                       button
-                         ~a:[ a_id "logout-btn"; a_class [ "login-btn" ] ]
-                         [ txt "Logout" ];
-                     ];
+                     ((if staff.Ft_auth.role = "admin" then
+                         [
+                           a ~service:admin_service
+                             ~a:[ a_class [ "login-btn" ] ]
+                             [ txt "Admin dashboard" ] ();
+                         ]
+                       else [])
+                      @ [
+                          button
+                            ~a:[ a_id "logout-btn"; a_class [ "login-btn" ] ]
+                            [ txt "Logout" ];
+                        ]);
                    page_script "/js/scanner.js";
                  ];
              ]))
@@ -1178,6 +1206,8 @@ let () =
                        button
                          ~a:[ a_id "tab-audit"; a_class [ "tab-btn" ] ]
                          [ txt "Audit log" ];
+                       a ~service:scanner_service ~a:[ a_class [ "tab-btn" ] ]
+                         [ txt "Scanner" ] ();
                        button
                          ~a:[ a_id "logout-btn"; a_class [ "tab-btn" ] ]
                          [ txt "Logout" ];
