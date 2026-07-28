@@ -12,6 +12,7 @@ This exists only because building an email with an inline PNG
 attachment is not supported by the OCaml SMTP library in use; all
 decisions (who gets a QR, token rotation, auditing) stay in OCaml.
 """
+
 import html
 import io
 import json
@@ -39,7 +40,8 @@ def build_message(smtp_from, base_url, recipient, png):
     safe_name = html.escape(name)
     link_html = (
         f'<a href="{html.escape(base_url)}/dashboard">FoodTicket dashboard</a>'
-        if base_url else "your FoodTicket dashboard"
+        if base_url
+        else "your FoodTicket dashboard"
     )
     msg.add_alternative(
         f"""<html><body>
@@ -63,10 +65,20 @@ def main():
     try:
         import qrcode
     except ImportError:
-        print(json.dumps({"results": [
-            {"email": r["email"], "ok": False, "error": "python 'qrcode' module not installed"}
-            for r in recipients
-        ]}))
+        print(
+            json.dumps(
+                {
+                    "results": [
+                        {
+                            "email": r["email"],
+                            "ok": False,
+                            "error": "python 'qrcode' module not installed",
+                        }
+                        for r in recipients
+                    ]
+                }
+            )
+        )
         return
 
     smtp = cfg["smtp"]
@@ -79,7 +91,9 @@ def main():
                 img = qrcode.make(r["qr"])
                 buf = io.BytesIO()
                 img.save(buf, format="PNG")
-                msg = build_message(smtp["from"], cfg.get("base_url", ""), r, buf.getvalue())
+                msg = build_message(
+                    smtp["from"], cfg.get("base_url", ""), r, buf.getvalue()
+                )
                 server.send_message(msg)
                 results.append({"email": r["email"], "ok": True})
             except Exception as e:  # keep going; report per-recipient
@@ -88,7 +102,9 @@ def main():
         sent = {x["email"] for x in results}
         for r in recipients:
             if r["email"] not in sent:
-                results.append({"email": r["email"], "ok": False, "error": f"smtp: {e}"})
+                results.append(
+                    {"email": r["email"], "ok": False, "error": f"smtp: {e}"}
+                )
     finally:
         if server is not None:
             try:
