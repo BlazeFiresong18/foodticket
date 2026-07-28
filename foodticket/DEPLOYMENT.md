@@ -1,5 +1,7 @@
 # FoodTicket — Deployment Guide (fresh Ubuntu 22.04/24.04 VM)
 
+> If whoever is deploying this doesn't have a dev/sysadmin background, use [`DEPLOYMENT_SIMPLE.md`](DEPLOYMENT_SIMPLE.md) instead — same steps, explained with no assumed prior knowledge.
+
 Architecture: **Caddy** (internet-facing, terminates TLS, auto Let's Encrypt)
 → **OCaml/Eliom app** (loopback only, `127.0.0.1:8080`) → **MySQL** (local).
 

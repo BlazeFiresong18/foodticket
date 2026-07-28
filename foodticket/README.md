@@ -62,7 +62,7 @@ Runs a full black-box suite against a live server: registration, login, role-bas
 
 ## Deployment
 
-See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the full guide — Caddy in front (automatic HTTPS via Let's Encrypt), the app itself bound to loopback only, systemd for process supervision and restart-on-crash, and a nightly `mysqldump` backup via a systemd timer.
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the full technical guide, or [`DEPLOYMENT_SIMPLE.md`](DEPLOYMENT_SIMPLE.md) for a step-by-step version with no assumed dev/sysadmin background — useful if whoever's hosting this isn't the person who built it. — Caddy in front (automatic HTTPS via Let's Encrypt), the app itself bound to loopback only, systemd for process supervision and restart-on-crash, and a nightly `mysqldump` backup via a systemd timer.
 
 ## Security notes
 
