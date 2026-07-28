@@ -9,13 +9,23 @@ document.addEventListener("DOMContentLoaded", function () {
   var html5QrCode = null;
   var scanning = false;
 
-  function setStatus(msg) { status.textContent = msg; }
+  function setStatus(msg) {
+    status.textContent = msg;
+  }
 
-  function setPanel(html) { panel.innerHTML = html; }
+  function setPanel(html) {
+    panel.innerHTML = html;
+  }
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[c];
     });
   }
 
@@ -23,12 +33,15 @@ document.addEventListener("DOMContentLoaded", function () {
     var body = Object.keys(params)
       .map(function (k) {
         return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
-      }).join("&");
+      })
+      .join("&");
     return fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body
-    }).then(function (r) { return r.json(); });
+      body: body,
+    }).then(function (r) {
+      return r.json();
+    });
   }
 
   function scanNextButton() {
@@ -37,7 +50,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function bindScanNext() {
     var b = document.getElementById("scan-next");
-    if (b) b.onclick = function () { setPanel(""); startScan(); };
+    if (b)
+      b.onclick = function () {
+        setPanel("");
+        startScan();
+      };
   }
 
   function warn(html) {
@@ -51,8 +68,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function renderHistory(history) {
-    if (!history || !history.length) return "<br/><small>No previous redemptions.</small>";
-    return "<br/><small>Previous redemptions: " + history.map(escapeHtml).join(", ") + "</small>";
+    if (!history || !history.length)
+      return "<br/><small>No previous redemptions.</small>";
+    return (
+      "<br/><small>Previous redemptions: " +
+      history.map(escapeHtml).join(", ") +
+      "</small>"
+    );
   }
 
   // ── redemption flow ─────────────────────────────────────────────────
@@ -60,16 +82,24 @@ document.addEventListener("DOMContentLoaded", function () {
     if (data.status === "otp_sent") {
       setStatus("Customer verified — awaiting OTP.");
       setPanel(
-        '<div class="info-box">Customer: <b>' + escapeHtml(data.name) + "</b><br/>" +
-        "OTP sent to " + escapeHtml(data.masked_email) + renderHistory(data.history) + "</div>" +
-        '<input id="f-otp" type="text" inputmode="numeric" placeholder="6-digit OTP" maxlength="6" ' +
-        'style="padding:8px;font-size:1rem;width:200px;margin:8px 0;display:inline-block"/> ' +
-        '<button id="f-confirm" class="login-btn">Confirm</button> ' +
-        '<button id="f-cancel" class="login-btn">Cancel</button>'
+        '<div class="info-box">Customer: <b>' +
+          escapeHtml(data.name) +
+          "</b><br/>" +
+          "OTP sent to " +
+          escapeHtml(data.masked_email) +
+          renderHistory(data.history) +
+          "</div>" +
+          '<input id="f-otp" type="text" inputmode="numeric" placeholder="6-digit OTP" maxlength="6" ' +
+          'style="padding:8px;font-size:1rem;width:200px;margin:8px 0;display:inline-block"/> ' +
+          '<button id="f-confirm" class="login-btn">Confirm</button> ' +
+          '<button id="f-cancel" class="login-btn">Cancel</button>',
       );
       document.getElementById("f-confirm").onclick = function () {
         var code = document.getElementById("f-otp").value.trim();
-        if (!code) { setStatus("Enter the OTP."); return; }
+        if (!code) {
+          setStatus("Enter the OTP.");
+          return;
+        }
         setStatus("Confirming...");
         post("/api/scan/confirm", { payload: payload, code: code })
           .then(function (d) {
@@ -79,23 +109,39 @@ document.addEventListener("DOMContentLoaded", function () {
             } else if (d.status === "invalid_otp") {
               setStatus("Invalid or expired OTP — try again.");
             } else if (d.status === "already_redeemed") {
-              warn("⚠️ <b>" + escapeHtml(d.name) + "</b> already redeemed today. Attempt logged.");
+              warn(
+                "⚠️ <b>" +
+                  escapeHtml(d.name) +
+                  "</b> already redeemed today. Attempt logged.",
+              );
             } else {
               warn("⚠️ Could not confirm redemption. Attempt logged.");
             }
           })
-          .catch(function () { setStatus("Network error. Try again."); });
+          .catch(function () {
+            setStatus("Network error. Try again.");
+          });
       };
       document.getElementById("f-cancel").onclick = function () {
-        setPanel(""); startScan();
+        setPanel("");
+        startScan();
       };
     } else if (data.status === "already_redeemed") {
       setStatus("Blocked.");
-      warn("⚠️ <b>" + escapeHtml(data.name) + "</b> has ALREADY redeemed a meal today.<br/>" +
-           "Do not serve. This attempt has been logged for admin review." + renderHistory(data.history));
+      warn(
+        "⚠️ <b>" +
+          escapeHtml(data.name) +
+          "</b> has ALREADY redeemed a meal today.<br/>" +
+          "Do not serve. This attempt has been logged for admin review." +
+          renderHistory(data.history),
+      );
     } else if (data.status === "inactive") {
       setStatus("Blocked.");
-      warn("⚠️ Account for <b>" + escapeHtml(data.name) + "</b> is deactivated. Attempt logged.");
+      warn(
+        "⚠️ Account for <b>" +
+          escapeHtml(data.name) +
+          "</b> is deactivated. Attempt logged.",
+      );
     } else if (data.status === "invalid") {
       setStatus("Blocked.");
       warn("⚠️ INVALID QR code — not a valid FoodTicket. Attempt logged.");
@@ -113,7 +159,9 @@ document.addEventListener("DOMContentLoaded", function () {
   function onScan(payload) {
     setStatus("Verifying...");
     post("/api/scan/verify", { payload: payload })
-      .then(function (data) { handleVerify(data, payload); })
+      .then(function (data) {
+        handleVerify(data, payload);
+      })
       .catch(function () {
         setStatus("Network error.");
         warn("Network error while verifying — rescan.");
@@ -131,7 +179,9 @@ document.addEventListener("DOMContentLoaded", function () {
       scanning = false;
       onScan(decodedText);
     }
-    function onScanFailure() { setStatus("Scanning..."); }
+    function onScanFailure() {
+      setStatus("Scanning...");
+    }
     var config = { fps: 10, qrbox: { width: 280, height: 280 } };
 
     window.Html5Qrcode.getCameras()
@@ -147,13 +197,18 @@ document.addEventListener("DOMContentLoaded", function () {
         // camera (most laptops) reject the constraint, so fall back to
         // whatever the first camera is.
         return html5QrCode
-          .start({ facingMode: "environment" }, config, onDecoded, onScanFailure)
+          .start(
+            { facingMode: "environment" },
+            config,
+            onDecoded,
+            onScanFailure,
+          )
           .catch(function () {
             return html5QrCode.start(
               { deviceId: { exact: devices[0].id } },
               config,
               onDecoded,
-              onScanFailure
+              onScanFailure,
             );
           });
       })
@@ -168,19 +223,28 @@ document.addEventListener("DOMContentLoaded", function () {
   script.src = "/js/vendor/html5-qrcode.min.js";
   script.async = true;
   script.onload = function () {
-    if (!window.Html5Qrcode) { setStatus("Scanner library failed to load."); return; }
+    if (!window.Html5Qrcode) {
+      setStatus("Scanner library failed to load.");
+      return;
+    }
     html5QrCode = new window.Html5Qrcode("qr-reader");
     startScan();
   };
-  script.onerror = function () { setStatus("Failed to load scanner library."); };
+  script.onerror = function () {
+    setStatus("Failed to load scanner library.");
+  };
   document.body.appendChild(script);
 
   var logout = document.getElementById("logout-btn");
   if (logout) {
     logout.onclick = function () {
       fetch("/api/logout", { method: "POST" })
-        .then(function () { location.href = "/login"; })
-        .catch(function () { location.href = "/login"; });
+        .then(function () {
+          location.href = "/login";
+        })
+        .catch(function () {
+          location.href = "/login";
+        });
     };
   }
 });

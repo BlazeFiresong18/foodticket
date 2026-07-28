@@ -2,25 +2,36 @@ document.addEventListener("DOMContentLoaded", function () {
   var status = document.getElementById("auth-status");
 
   // ── UI helpers ──────────────────────────────────────────────────────
-  function setStatus(html) { if (status) status.innerHTML = html; }
+  function setStatus(html) {
+    if (status) status.innerHTML = html;
+  }
 
   function escapeHtml(s) {
     return s.replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[c];
     });
   }
 
   // ── API helpers ──────────────────────────────────────────────────────
   function post(url, params) {
     var body = Object.keys(params)
-      .map(function(k) {
+      .map(function (k) {
         return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
-      }).join("&");
+      })
+      .join("&");
     return fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body
-    }).then(function(r) { return r.json(); });
+      body: body,
+    }).then(function (r) {
+      return r.json();
+    });
   }
 
   function homeFor(role) {
@@ -45,10 +56,17 @@ document.addEventListener("DOMContentLoaded", function () {
       var name = document.getElementById("reg-name").value.trim();
       var email = document.getElementById("reg-email").value.trim();
       var password = document.getElementById("reg-password").value;
-      if (!name || !email || !password) { setStatus("Please fill in all fields."); return; }
+      if (!name || !email || !password) {
+        setStatus("Please fill in all fields.");
+        return;
+      }
       setStatus("Registering...");
-      post("/api/register-user", { name: name, email: email, password: password })
-        .then(function(data) {
+      post("/api/register-user", {
+        name: name,
+        email: email,
+        password: password,
+      })
+        .then(function (data) {
           if (data.status === "already_registered") {
             setStatus("Already registered, please login.");
           } else if (data.status === "weak_password") {
@@ -60,12 +78,16 @@ document.addEventListener("DOMContentLoaded", function () {
           } else if (data.status === "rate_limited") {
             setStatus("Too many attempts. Please wait a while and try again.");
           } else if (data.status === "success") {
-            setStatus('Registration successful! <a href="/login">Login now</a>');
+            setStatus(
+              'Registration successful! <a href="/login">Login now</a>',
+            );
           } else {
             setStatus("Something went wrong. Try again.");
           }
         })
-        .catch(function() { setStatus("Network error. Try again."); });
+        .catch(function () {
+          setStatus("Network error. Try again.");
+        });
     };
   }
 
@@ -82,22 +104,33 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("login-submit").onclick = function () {
       var email = document.getElementById("login-email").value.trim();
       var password = document.getElementById("login-password").value;
-      if (!email || !password) { setStatus("Please enter your email and password."); return; }
+      if (!email || !password) {
+        setStatus("Please enter your email and password.");
+        return;
+      }
       setStatus("Checking...");
       post("/api/login", { email: email, password: password })
-        .then(function(data) {
+        .then(function (data) {
           if (data.status === "invalid_credentials") {
-            setStatus('Wrong email or password. <a href="/register">Need an account?</a>');
+            setStatus(
+              'Wrong email or password. <a href="/register">Need an account?</a>',
+            );
           } else if (data.status === "rate_limited") {
-            setStatus("Too many attempts. Please wait a few minutes and try again.");
+            setStatus(
+              "Too many attempts. Please wait a few minutes and try again.",
+            );
           } else if (data.status === "success") {
-            setStatus("Welcome back " + escapeHtml(data.name) + "! Redirecting…");
+            setStatus(
+              "Welcome back " + escapeHtml(data.name) + "! Redirecting…",
+            );
             location.href = homeFor(data.role);
           } else {
             setStatus("Something went wrong. Try again.");
           }
         })
-        .catch(function() { setStatus("Network error. Try again."); });
+        .catch(function () {
+          setStatus("Network error. Try again.");
+        });
     };
   }
 
@@ -111,17 +144,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.getElementById("forgot-submit").onclick = function () {
       var email = document.getElementById("forgot-email").value.trim();
-      if (!email) { setStatus("Please enter your email."); return; }
+      if (!email) {
+        setStatus("Please enter your email.");
+        return;
+      }
       setStatus("Sending...");
       post("/api/forgot-password", { email: email })
         .then(function (data) {
           if (data.status === "rate_limited") {
             setStatus("Too many attempts. Please wait a while and try again.");
           } else {
-            setStatus("If that email has an account, a reset link is on its way.");
+            setStatus(
+              "If that email has an account, a reset link is on its way.",
+            );
           }
         })
-        .catch(function () { setStatus("Network error. Try again."); });
+        .catch(function () {
+          setStatus("Network error. Try again.");
+        });
     };
   }
 
@@ -140,7 +180,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       document.getElementById("reset-submit").onclick = function () {
         var password = document.getElementById("reset-password").value;
-        if (!password) { setStatus("Please enter a new password."); return; }
+        if (!password) {
+          setStatus("Please enter a new password.");
+          return;
+        }
         setStatus("Resetting...");
         post("/api/reset-password", { token: resetToken, password: password })
           .then(function (data) {
@@ -149,14 +192,20 @@ document.addEventListener("DOMContentLoaded", function () {
             } else if (data.status === "weak_password") {
               setStatus("Password must be at least 8 characters.");
             } else if (data.status === "invalid_token") {
-              setStatus('This reset link is invalid or has expired. <a href="/forgot-password">Request a new one</a>.');
+              setStatus(
+                'This reset link is invalid or has expired. <a href="/forgot-password">Request a new one</a>.',
+              );
             } else if (data.status === "rate_limited") {
-              setStatus("Too many attempts. Please wait a while and try again.");
+              setStatus(
+                "Too many attempts. Please wait a while and try again.",
+              );
             } else {
               setStatus("Something went wrong. Try again.");
             }
           })
-          .catch(function () { setStatus("Network error. Try again."); });
+          .catch(function () {
+            setStatus("Network error. Try again.");
+          });
       };
     }
   }

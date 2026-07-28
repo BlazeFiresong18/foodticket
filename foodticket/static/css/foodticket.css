@@ -16,18 +16,31 @@
   --radius: 12px;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   min-height: 100%;
 }
 
 body {
-  background: radial-gradient(1200px 600px at 50% -100px, #1a2333 0%, var(--bg) 60%);
+  background: radial-gradient(
+    1200px 600px at 50% -100px,
+    #1a2333 0%,
+    var(--bg) 60%
+  );
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -68,12 +81,19 @@ body {
   font-weight: 400;
 }
 
-h2, h3 { color: var(--text); }
+h2,
+h3 {
+  color: var(--text);
+}
 
-a { color: var(--accent-hover); }
+a {
+  color: var(--accent-hover);
+}
 
 /* ── buttons & inputs ──────────────────────────────────────── */
-.login-btn, .tab-btn, button {
+.login-btn,
+.tab-btn,
+button {
   display: inline-block;
   padding: 10px 22px;
   margin: 6px 4px;
@@ -85,20 +105,32 @@ a { color: var(--accent-hover); }
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.05s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.05s ease;
 }
 
-.login-btn:hover, .tab-btn:hover, button:hover { background: var(--accent-hover); }
-.login-btn:active, button:active { transform: scale(0.98); }
+.login-btn:hover,
+.tab-btn:hover,
+button:hover {
+  background: var(--accent-hover);
+}
+.login-btn:active,
+button:active {
+  transform: scale(0.98);
+}
 
 .tab-btn {
   background: var(--bg-soft);
   color: var(--text);
   border: 1px solid var(--border);
 }
-.tab-btn:hover { background: var(--border); }
+.tab-btn:hover {
+  background: var(--border);
+}
 
-input, select {
+input,
+select {
   padding: 10px 12px;
   margin: 6px 0;
   background: var(--bg-soft);
@@ -109,12 +141,15 @@ input, select {
   max-width: 100%;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
 
-input::placeholder { color: var(--text-dim); }
+input::placeholder {
+  color: var(--text-dim);
+}
 
 /* ── QR display (white on purpose — scanners need contrast) ── */
 #qr-box {
@@ -123,9 +158,14 @@ input::placeholder { color: var(--text-dim); }
   padding: 16px;
   margin: 14px auto;
   border-radius: var(--radius);
-  box-shadow: 0 0 0 1px var(--border), 0 12px 30px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 12px 30px rgba(0, 0, 0, 0.5);
 }
-#qr-box img, #qr-box canvas { display: block; }
+#qr-box img,
+#qr-box canvas {
+  display: block;
+}
 
 /* ── scanner ───────────────────────────────────────────────── */
 #qr-reader {
@@ -135,11 +175,19 @@ input::placeholder { color: var(--text-dim); }
   overflow: hidden;
 }
 
-#qr-status { color: var(--text-dim); }
+#qr-status {
+  color: var(--text-dim);
+}
 
 /* ── status & message boxes ────────────────────────────────── */
-.status-ok { color: var(--accent-hover); font-weight: 600; }
-.status-bad { color: var(--danger); font-weight: 700; }
+.status-ok {
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+.status-bad {
+  color: var(--danger);
+  font-weight: 700;
+}
 
 .warning-box {
   background: var(--danger-bg);
@@ -182,7 +230,8 @@ input::placeholder { color: var(--text-dim); }
   max-width: 100%;
 }
 
-.data-table th, .data-table td {
+.data-table th,
+.data-table td {
   border: 1px solid var(--border);
   padding: 8px 12px;
   font-size: 0.92rem;
@@ -198,11 +247,16 @@ input::placeholder { color: var(--text-dim); }
   letter-spacing: 0.05em;
 }
 
-.data-table small { color: var(--text-dim); }
+.data-table small {
+  color: var(--text-dim);
+}
 
-.row-flagged td { background: var(--danger-bg); }
+.row-flagged td {
+  background: var(--danger-bg);
+}
 
-.data-table input, .data-table select {
+.data-table input,
+.data-table select {
   padding: 6px 8px;
   margin: 0;
   font-size: 0.9rem;
@@ -214,16 +268,31 @@ input::placeholder { color: var(--text-dim); }
   font-size: 0.85rem;
 }
 
-.toolbar { margin: 14px 0; }
-.toolbar input, .toolbar select { margin: 4px; }
+.toolbar {
+  margin: 14px 0;
+}
+.toolbar input,
+.toolbar select {
+  margin: 4px;
+}
 
-#admin-tabs { margin-bottom: 10px; }
+#admin-tabs {
+  margin-bottom: 10px;
+}
 
 /* ── mobile ────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .hero { margin: 2vh 10px; padding: 24px 14px; }
-  .admin-wrap { margin: 1vh 6px; padding: 18px 8px; }
-  .title { font-size: 1.5rem; }
+  .hero {
+    margin: 2vh 10px;
+    padding: 24px 14px;
+  }
+  .admin-wrap {
+    margin: 1vh 6px;
+    padding: 18px 8px;
+  }
+  .title {
+    font-size: 1.5rem;
+  }
 
   /* wide tables scroll sideways instead of breaking the layout */
   .data-table {
@@ -233,5 +302,8 @@ input::placeholder { color: var(--text-dim); }
     -webkit-overflow-scrolling: touch;
   }
 
-  .login-btn, button { padding: 12px 20px; } /* bigger touch targets */
+  .login-btn,
+  button {
+    padding: 12px 20px;
+  } /* bigger touch targets */
 }

@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
         text: box.dataset.token,
         width: 220,
         height: 220,
-        correctLevel: QRCode.CorrectLevel.M
+        correctLevel: QRCode.CorrectLevel.M,
       });
     } else {
       box.textContent = "QR renderer failed to load — please refresh.";
@@ -17,8 +17,12 @@ document.addEventListener("DOMContentLoaded", function () {
   if (logout) {
     logout.onclick = function () {
       fetch("/api/logout", { method: "POST" })
-        .then(function () { location.href = "/login"; })
-        .catch(function () { location.href = "/login"; });
+        .then(function () {
+          location.href = "/login";
+        })
+        .catch(function () {
+          location.href = "/login";
+        });
     };
   }
 });

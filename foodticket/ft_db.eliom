@@ -18,19 +18,17 @@ let with_db f =
   let db = connect () in
   match f db with
   | v ->
-    Mysql.disconnect db;
-    v
+      Mysql.disconnect db;
+      v
   | exception e ->
-    (try Mysql.disconnect db with _ -> ());
-    raise e
+      (try Mysql.disconnect db with _ -> ());
+      raise e
 
 let exec db sql = Mysql.exec db sql
 
 let fetch_all res =
   let rec go acc =
-    match Mysql.fetch res with
-    | Some row -> go (row :: acc)
-    | None -> List.rev acc
+    match Mysql.fetch res with Some row -> go (row :: acc) | None -> List.rev acc
   in
   go []
 
