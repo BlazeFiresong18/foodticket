@@ -34,7 +34,26 @@ let with_role roles f get post =
   let%lwt u = Ft_auth.require roles in
   match u with None -> send_json ~code:403 {|{"status":"forbidden"}|} | Some u -> f u get post
 
-let client_ip () = try Eliom_request_info.get_remote_ip () with _ -> "unknown"
+(* In production, ocsigenserver only ever sees Caddy's own loopback
+   connection (the app binds 127.0.0.1 only -- see deploy/foodticket.service),
+   so get_remote_ip() alone returns Caddy's address for every request,
+   collapsing every *-ip: rate-limit key into one shared bucket for the
+   whole site. Caddy's reverse_proxy appends the real client address as the
+   LAST hop of X-Forwarded-For (any earlier hop could be client-forged), so
+   trust that specific position, not the header wholesale. Falls back to
+   get_remote_ip() when the header is absent (e.g. local dev with no Caddy
+   in front). *)
+let client_ip () =
+  let forwarded =
+    try Ocsigen_request.header (Eliom_request_info.get_ri ()) Ocsigen_header.Name.x_forwarded_for
+    with _ -> None
+  in
+  match forwarded with
+  | Some raw -> (
+      match List.rev (String.split_on_char ',' raw) with
+      | last :: _ -> String.trim last
+      | [] -> "unknown")
+  | None -> ( try Eliom_request_info.get_remote_ip () with _ -> "unknown")
 
 (* ==== DB helpers shared by handlers =================================== *)
 
@@ -457,7 +476,24 @@ let () =
        (with_role [ "scanner"; "admin" ] (fun staff () (payload, code) ->
             let staff_id = staff.Ft_auth.id in
             let code = String.trim code in
-            if not (String.length code = 6 && Ft_util.is_digits code) then
+            (* A 6-digit OTP is only 1,000,000 possibilities, valid for 10
+               minutes -- without a limit here, a malicious/compromised
+               scanner or admin account could brute-force it well within
+               that window and redeem a meal without the customer ever
+               having read the email. Every other sensitive endpoint in
+               this file already rate-limits; this one is the actual
+               gate on redemption and had been missed. *)
+            if
+              not
+                (Ft_util.rate_allow
+                   ~key:("scan-confirm:" ^ string_of_int staff_id)
+                   ~limit:10 ~window_s:600.)
+            then begin
+              Ft_log.warn "rate_limited"
+                [ ("endpoint", "scan-confirm"); ("scanner", staff.Ft_auth.email) ];
+              send_json ~code:429 {|{"status":"rate_limited"}|}
+            end
+            else if not (String.length code = 6 && Ft_util.is_digits code) then
               send_json {|{"status":"invalid_otp"}|}
             else
               match parse_qr_payload payload with

@@ -142,6 +142,12 @@ for i in 1 2 3 4 5 6 7; do
 done
 check "login rate limit kicks in" '"status":"rate_limited"' "$RL"
 
+RLC=""
+for i in $(seq 1 12); do
+  RLC=$(post scan.jar /api/scan/confirm "payload=$TOKEN" "code=000000")
+done
+check "scan-confirm rate limit kicks in" '"status":"rate_limited"' "$RLC"
+
 echo "== forgot / reset password =="
 check "forgot password (existing email)" '"status":"success"' \
   "$(post cust.jar /api/forgot-password "email=$CUST")"
